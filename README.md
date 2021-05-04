@@ -1,6 +1,6 @@
 # ComponentFillSimplify
 ## 기능
-* 사용자가 작성한 MonoBehaviour에서 특정 컴포넌트의 초기화를 간단하게 만들어줍니다.
+* 사용자가 작성한 MonoBehaviour에서 컴포넌트의 초기화를 간단하게 만들어줍니다.
 
 ## 왜 쓸까?
 Unity3D에서 게임을 만들때 컴포넌트는 반드시 필요합니다.  
