@@ -55,7 +55,7 @@ public class Test : MonoBehaviour
   [GetComponent]
   public Rigidbody rigidbody;
   
-  // 가장 최상위 부모 오브젝트에게서 Rigidbody를 가져옴
+  // 가장 최상위 부모 오브젝트에게서 AudioSource를 가져옴
   [GetComponent( GetComponentScope.Root )]
   public AudioSource audio { get; set; }
   
