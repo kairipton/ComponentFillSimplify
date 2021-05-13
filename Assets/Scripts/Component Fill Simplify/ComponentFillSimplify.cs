@@ -24,10 +24,10 @@ public static class ComponentFillSimplify
 #endif
 
 	/// <summary>
-	/// MonoBehaviour ³»ºÎ¿¡¼­ »ç¿ëÁßÀÎ ¸â¹ö ÇÊµå³ª ÇÁ·ÎÆÛÆ¼¿¡ »ç¿ëÇÑ´Ù.
-	/// ÇÊµå, ÇÁ·ÎÆÛÆ¼¿¡ [GetComponent] Attribute¸¦ »ç¿ëÇÏ°í
-	/// ÇØ´ç MonoBehaviour¿¡¼­ ÀÌ ¸Ş¼Òµå¸¦ È£ÃâÇÏ¸é ÀÚµ¿À¸·Î ÇÊµå¿Í ÇÁ·ÎÆÛÆ¼°¡ Ã¤¿öÁø´Ù.
-	/// MonoBehaviour¸¦ °¡Áø GameObject´Â ÇØ´çÇÏ´Â ÄÄÆ÷³ÍÆ®°¡ Ãß°¡ µÇ¾î ÀÖ¾î¾ß ÇÑ´Ù.
+	/// MonoBehaviour ë‚´ë¶€ì—ì„œ ì‚¬ìš©ì¤‘ì¸ ë©¤ë²„ í•„ë“œë‚˜ í”„ë¡œí¼í‹°ì— ì‚¬ìš©í•œë‹¤.
+	/// í•„ë“œ, í”„ë¡œí¼í‹°ì— [GetComponent] Attributeë¥¼ ì‚¬ìš©í•˜ê³ 
+	/// í•´ë‹¹ MonoBehaviourì—ì„œ ì´ ë©”ì†Œë“œë¥¼ í˜¸ì¶œí•˜ë©´ ìë™ìœ¼ë¡œ í•„ë“œì™€ í”„ë¡œí¼í‹°ê°€ ì±„ì›Œì§„ë‹¤.
+	/// MonoBehaviourë¥¼ ê°€ì§„ GameObjectëŠ” í•´ë‹¹í•˜ëŠ” ì»´í¬ë„ŒíŠ¸ê°€ ì¶”ê°€ ë˜ì–´ ìˆì–´ì•¼ í•œë‹¤.
 	/// </summary>
 	public static void ComponentFill(this MonoBehaviour mono)
 	{
@@ -38,19 +38,16 @@ public static class ComponentFillSimplify
 			.Where( x=> x.GetCustomAttribute( typeof(GetComponentAttribute), true ) != null )
 			.ToArray();
 
-		// MonoBehaviour.GetComponentÀÇ ´ë»ó ¿ÀºêÁ§Æ®µé
-		GameObject[] scopeTargets = new GameObject[0];
+		// MonoBehaviour.GetComponentì˜ ëŒ€ìƒ ì˜¤ë¸Œì íŠ¸ë“¤
+		GameObject scopeTarget = null;
 
 		for(int i=0; i<fields.Length; i++)
 		{
 			var att = (GetComponentAttribute)fields[i].GetCustomAttribute( typeof(GetComponentAttribute), true );
 			if( att != null )
 			{
-				GetScopeTargets( mono, ref scopeTargets, att.Scope );
-				for(int j=0; j<scopeTargets.Length; j++)
-				{
-					SetValue( scopeTargets[j], mono, fields[i].SetValue, fields[i].FieldType );
-				}
+				GetScopeTargets( mono, ref scopeTarget, att.Scope );
+				SetValue( scopeTarget, mono, fields[i].SetValue, fields[i].FieldType, att.Scope );
 			}	
 		}
 
@@ -59,75 +56,88 @@ public static class ComponentFillSimplify
 			var att = (GetComponentAttribute)props[i].GetCustomAttribute( typeof(GetComponentAttribute), true );
 			if( att != null )
 			{
-				GetScopeTargets( mono, ref scopeTargets, att.Scope );
-				for(int j=0; j<scopeTargets.Length; j++)
-				{
-					SetValue( scopeTargets[j], mono, props[i].SetValue, props[i].PropertyType );
-				}
+				GetScopeTargets( mono, ref scopeTarget, att.Scope );
+				SetValue( scopeTarget, mono, props[i].SetValue, props[i].PropertyType, att.Scope );
 			}
 		}
 	}
 
 	/// <summary>
-	/// GetComponentScope¿¡ µû¶ó GetComponent¸¦ ¼öÇàÇÒ ¿ÀºêÁ§Æ®µéÀ» °¡Á®¿Â´Ù.
+	/// GetComponentScopeì— ë”°ë¼ GetComponentë¥¼ ìˆ˜í–‰í•  ì˜¤ë¸Œì íŠ¸ë“¤ì„ ê°€ì ¸ì˜¨ë‹¤.
 	/// </summary>
-	/// <param name="mono">GetComponent Attribute¸¦ »ç¿ëÇÏ°í ÀÖ´Â ÇÊµå¸¦ °¡Áø MonoBehaviour</param>
-	/// <param name="scopeTargets">°á°ú ¿ÀºêÁ§Æ®°¡ ¿©±â¿¡ ÀúÀåµÈ´Ù.</param>
-	/// <param name="scope">GetComponent Attribute¿¡ ÁöÁ¤µÈ scope</param>
-	static void GetScopeTargets(MonoBehaviour mono, ref GameObject[] scopeTargets, GetComponentScope scope)
+	/// <param name="mono">GetComponent Attributeë¥¼ ì‚¬ìš©í•˜ê³  ìˆëŠ” í•„ë“œë¥¼ ê°€ì§„ MonoBehaviour</param>
+	/// <param name="scopeTarget">ê²°ê³¼ ì˜¤ë¸Œì íŠ¸ê°€ ì—¬ê¸°ì— ì €ì¥ëœë‹¤.</param>
+	/// <param name="scope">GetComponent Attributeì— ì§€ì •ëœ scope</param>
+	static void GetScopeTargets(MonoBehaviour mono, ref GameObject scopeTarget, GetComponentScope scope)
 	{
-		int arraySize = scope == GetComponentScope.Childs ? mono.transform.childCount : 1;
-		Array.Resize( ref scopeTargets, arraySize );
-
 		if( scope == GetComponentScope.FirstChild )
 		{
-			scopeTargets[0] = mono.transform.GetChild( 0 ).gameObject;
+			scopeTarget = mono.transform.GetChild( 0 ).gameObject;
 		}
 
 		else if( scope == GetComponentScope.LastChild )
 		{
-			scopeTargets[0] = mono.transform.GetChild( mono.transform.childCount-1 ).gameObject;
+			scopeTarget = mono.transform.GetChild( mono.transform.childCount-1 ).gameObject;
 		}
 
 		else if( scope == GetComponentScope.Childs )
 		{
-			for(int j=0; j<mono.transform.childCount; j++)
-			{
-				scopeTargets[j] = mono.transform.GetChild( j ).gameObject;
-			}
+			scopeTarget = mono.gameObject;
 		}
 
 		else if( scope == GetComponentScope.Parent )
 		{
-			scopeTargets[0] = mono.transform.parent.gameObject;
+			scopeTarget = mono.transform.parent.gameObject;
 		}
 
 		else if( scope == GetComponentScope.Root )
 		{
-			scopeTargets[0] = mono.transform.root.gameObject;
+			scopeTarget = mono.transform.root.gameObject;
 		}
 
 		else // att.Scope == GetComponentScope.This 
 		{
-			scopeTargets[0] = mono.gameObject;
+			scopeTarget = mono.gameObject;
 		}
 	}
 
 	/// <summary>
-	/// ¸â¹ö Field³ª Property¿¡ ½ÇÁ¦ ÄÄÆ÷³ÍÆ® °ªÀ» ³Ö´Â´Ù.
+	/// ë©¤ë²„ Fieldë‚˜ Propertyì— ì‹¤ì œ ì»´í¬ë„ŒíŠ¸ ê°’ì„ ë„£ëŠ”ë‹¤.
 	/// </summary>
-	/// <param name="sourceGo">GetComponent¸¦ ¼öÇàÇÒ ´ë»ó</param>
-	/// <param name="destMono">GetComponent·Î ¾òÀº ÄÄÆ÷³ÍÆ®¸¦ ³ÖÀ» MonoBehaviour</param>
-	static void SetValue(GameObject sourceGo, MonoBehaviour destMono, Action<object, object> setValue, Type memberType)
+	/// <param name="sourceGo">GetComponentë¥¼ ìˆ˜í–‰í•  ëŒ€ìƒ</param>
+	/// <param name="destMono">GetComponentë¡œ ì–»ì€ ì»´í¬ë„ŒíŠ¸ë¥¼ ë„£ì„ MonoBehaviour</param>
+	static void SetValue(GameObject sourceGo, MonoBehaviour destMono, Action<object, object> setValue, Type memberType, GetComponentScope scope)
 	{
-		var comp = sourceGo.GetComponent( memberType );
-		if( comp != null )
+		if( memberType.IsArray == true)
 		{
-			setValue( destMono, comp );
+			// ì›ì†Œ íƒ€ì…ì— í•´ë‹¹í•˜ëŠ” ì»´í¬ë„ŒíŠ¸ ì‹¹ ê¸ì–´ì˜¨ ë‹¤ìŒ sourceGoì˜ ë°”ë¡œ ì•„ë˜ childë§Œ ê±¸ëŸ¬ëƒ„.
+			var eleType = memberType.GetElementType();
+			var comps = sourceGo.GetComponentsInChildren( eleType ).ToArray();
+			comps = comps.Where( x=> x.transform.parent.Equals( sourceGo.transform ) ).ToArray();
+
+			// ìƒˆë¡œìš´ ë°°ì—´ì„ ë§Œë“¤ê³  ê°’ì„ ë„£ìŒ.
+			var arr = Array.CreateInstance( eleType, comps.Length );
+			for(int i=0; i<arr.Length; i++)
+			{
+				arr.SetValue( comps[i], i );
+			}
+			
+			setValue( destMono, arr );
 		}
 		else
 		{
-			Debug.LogError( $"{sourceGo.name}¿¡ {memberType.Name} ÄÄÆ÷³ÍÆ®°¡ ¾ø½À´Ï´Ù" );
+			Component comp = scope == GetComponentScope.Childs ? 
+				sourceGo.GetComponentInChildren( memberType ) :
+				sourceGo.GetComponent( memberType );
+
+			if( comp != null )
+			{
+				setValue( destMono, comp );
+			}
+			else
+			{
+				Debug.LogError( $"{sourceGo.name}ì— {memberType.Name} ì»´í¬ë„ŒíŠ¸ê°€ ì—†ìŠµë‹ˆë‹¤" );
+			}
 		}
 	}
 }
