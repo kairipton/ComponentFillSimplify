@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 [AttributeUsage( AttributeTargets.Field | AttributeTargets.Property, Inherited=true, AllowMultiple=false )]
 public class GetComponentAttribute : Attribute 
@@ -30,7 +30,9 @@ public enum GetComponentScope : byte
 	LastChild,
 
 	/// <summary>
-	/// GameObject 자신의 하위 자식들에게서 배열로 가져온다.
+	/// GameObject 자신의 하위 자식들에게서 가져온다.
+	/// 이 Attribute를 가진 멤버가 배열일 경우 배열로 가져오고,
+	/// 아닐 경우 GetComponentInChildren으로 가져온다.
 	/// </summary>
 	Childs,
 
